@@ -1,6 +1,7 @@
 package com.anonchat.backend.controller;
 
 import com.anonchat.backend.model.ChatMessage;
+import com.anonchat.backend.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -17,6 +18,7 @@ import java.util.Map;
 public class WebSocketEventListener {
 
     private final SimpMessageSendingOperations messagingTemplate;
+    private final ChatService chatService;
 
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
@@ -38,6 +40,9 @@ public class WebSocketEventListener {
                     .sender(username)
                     .content("left the chat")
                     .build();
+
+            // Saves Leave event to history
+            chatService.saveMessage(roomId, chatMessage);
 
             messagingTemplate.convertAndSend("/topic/" + roomId, chatMessage);
         }

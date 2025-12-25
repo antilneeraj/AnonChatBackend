@@ -58,9 +58,19 @@ public class ChatController {
         String cleanSender = filterService.sanitize(chatMessage.getSender());
         chatMessage.setSender(cleanSender);
 
+        chatMessage.setType(ChatMessage.MessageType.JOIN);
+
+//        String ipAddress = (String) headerAccessor.getSessionAttributes().get("IP_ADDRESS");
+//        if (rateLimitService.isBanned(ipAddress)) {
+            // ... (Ban logic) ...
+//        }
+
         // Adding username AND roomId in web socket session
         headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
         headerAccessor.getSessionAttributes().put("roomId", roomId);
+
+        // The "Join" event is also the part of history
+        chatService.saveMessage(roomId, chatMessage);
 
         return chatMessage;
     }

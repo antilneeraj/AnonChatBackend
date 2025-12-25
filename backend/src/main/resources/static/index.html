@@ -1,74 +1,268 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>AnonChat Rooms</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnonChat</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #e5ddd5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* MAIN CONTAINER */
+        #chat-container {
+            width: 900px;
+            height: 90vh;
+            background: #fff;
+            display: flex;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR (Login & Controls) */
+        #sidebar {
+            width: 30%;
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #ddd;
+        }
+
+        #sidebar h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #sidebar label {
+            font-size: 0.9em;
+            margin-top: 15px;
+            display: block;
+        }
+
+        #sidebar input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: none;
+            border-radius: 4px;
+        }
+
+        #sidebar button {
+            margin-top: 20px;
+            padding: 12px;
+            border: none;
+            background: #27ae60;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        #sidebar button:hover {
+            background: #2ecc71;
+        }
+
+        #sidebar .secondary-btn {
+            background: #e67e22;
+        }
+
+        #sidebar .secondary-btn:hover {
+            background: #d35400;
+        }
+
+        #status {
+            margin-top: auto;
+            font-size: 0.8em;
+            color: #bdc3c7;
+            text-align: center;
+        }
+
+        /* CHAT AREA */
+        #chat-area {
+            width: 70%;
+            display: flex;
+            flex-direction: column;
+            background: #efe7dd; /* WhatsApp-like background */
+        }
+
+        /* Messages List */
+        #messageArea {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            list-style-type: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Message Bubbles */
+        .message-item {
+            max-width: 70%;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 10px;
+            font-size: 0.95em;
+            position: relative;
+            word-wrap: break-word;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-own {
+            align-self: flex-end;
+            background: #dcf8c6; /* Green bubble */
+            border-top-right-radius: 0;
+        }
+
+        .message-other {
+            align-self: flex-start;
+            background: #fff; /* White bubble */
+            border-top-left-radius: 0;
+        }
+
+        .sender-name {
+            font-size: 0.75em;
+            color: #555;
+            margin-bottom: 3px;
+            display: block;
+            font-weight: bold;
+        }
+
+        .event-message {
+            align-self: center;
+            background: #d4e6f1;
+            color: #2c3e50;
+            font-size: 0.8em;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin: 10px 0;
+            box-shadow: none;
+        }
+
+        /* INPUT AREA */
+        #input-area {
+            padding: 20px;
+            background: #f0f0f0;
+            display: flex;
+            border-top: 1px solid #ddd;
+        }
+
+        #message {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            outline: none;
+        }
+
+        #sendBtn {
+            margin-left: 10px;
+            padding: 0 20px;
+            border-radius: 50%;
+            border: none;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+
+        #sendBtn:hover {
+            background: #2980b9;
+        }
+
+    </style>
 </head>
 <body>
-<h2>AnonChat Multi-Room</h2>
 
-<div>
-    <label>Room ID:</label>
-    <input type="text" id="roomId" value="java-room">
-    <label>Username:</label>
-    <input type="text" id="username" value="User1">
-    <button onclick="connect()">Join Room</button>
+<div id="chat-container">
+    <div id="sidebar">
+        <h2>💬 AnonChat</h2>
+
+        <label>Room ID</label>
+        <input type="text" id="roomId" value="general">
+
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Enter name...">
+
+        <button onclick="connect()">🚀 Join Room</button>
+        <button class="secondary-btn" onclick="downloadPdf()">📄 Export PDF</button>
+
+        <div id="status">🔴 Disconnected</div>
+    </div>
+
+    <div id="chat-area">
+        <ul id="messageArea">
+        </ul>
+
+        <div id="input-area">
+            <input type="text" id="message" placeholder="Type a message..." disabled>
+            <button id="sendBtn" onclick="sendMessage()" disabled>➤</button>
+        </div>
+    </div>
 </div>
-<hr/>
-
-<div id="status">Status: Disconnected</div>
-<br/>
-<input type="text" id="message" placeholder="Type a message...">
-<button onclick="sendMessage()">Send</button>
-
-<h3>Messages:</h3>
-<ul id="messageArea"></ul>
 
 <script>
     var stompClient = null;
     var currentRoomId = null;
+    var myUsername = null;
+
+    // Handle Enter Key to Send
+    document.getElementById("message").addEventListener("keypress", function (event) {
+        if (event.key === "Enter") {
+            sendMessage();
+        }
+    });
 
     function connect() {
         var roomId = document.getElementById('roomId').value;
         var username = document.getElementById('username').value;
-        currentRoomId = roomId;
 
-        // Feedback for the user
-        document.getElementById('status').innerText = 'Loading Room...';
+        if (!username) {
+            alert("Please enter a username!");
+            return;
+        }
+
+        currentRoomId = roomId;
+        myUsername = username;
 
         var socket = new SockJS('/ws');
         stompClient = Stomp.over(socket);
+        stompClient.debug = null; // Disable debug logs in console for cleaner look
 
         stompClient.connect({}, function (frame) {
-            document.getElementById('status').innerText = 'Connected to ' + roomId;
+            document.getElementById('status').innerText = '🟢 Connected: ' + roomId;
+            document.getElementById('message').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
 
-            // Subscribe to the Room Topic FIRST (to ensure we don't miss live events)
+            // Clear previous messages if re-connecting
+            document.getElementById('messageArea').innerHTML = '';
+
             stompClient.subscribe('/topic/' + roomId, function (message) {
                 showMessage(JSON.parse(message.body));
             });
 
-            // CHAINING: Fetch History -> Then Render -> Then Send Join
+            // Fetch History -> Then Render -> Then Join
             fetch('/api/history/' + roomId)
                 .then(response => response.json())
                 .then(data => {
-                    console.log("History loaded, rendering...");
+                    data.forEach(msg => showMessage(msg));
 
-                    // A. Render the past messages first
-                    data.forEach(msg => {
-                        showMessage(msg);
-                    });
-
-                    // B. ONLY NOW, tell the server "I have joined"
-                    // This ensures 'User Joined' always appears at the BOTTOM
-                    stompClient.send("/app/chat/" + roomId + "/addUser",
-                        {},
-                        JSON.stringify({sender: username, type: 'JOIN'})
-                    );
-                })
-                .catch(err => {
-                    console.error("Failed to load history:", err);
-                    // Even if history fails, we should still let the user join
                     stompClient.send("/app/chat/" + roomId + "/addUser",
                         {},
                         JSON.stringify({sender: username, type: 'JOIN'})
@@ -78,19 +272,26 @@
     }
 
     function sendMessage() {
-        var messageContent = document.getElementById('message').value;
-        var username = document.getElementById('username').value;
+        var messageInput = document.getElementById('message');
+        var messageContent = messageInput.value.trim();
 
         if (messageContent && stompClient) {
             var chatMessage = {
-                sender: username,
+                sender: myUsername,
                 content: messageContent,
                 type: 'CHAT'
             };
-            // Send to specific room
             stompClient.send("/app/chat/" + currentRoomId + "/sendMessage", {}, JSON.stringify(chatMessage));
-            document.getElementById('message').value = '';
+            messageInput.value = '';
         }
+    }
+
+    function downloadPdf() {
+        if (!currentRoomId) {
+            alert("Join a room first!");
+            return;
+        }
+        window.open('/api/export/' + currentRoomId, '_blank');
     }
 
     function showMessage(message) {
@@ -99,19 +300,41 @@
 
         if (message.type === 'JOIN') {
             li.classList.add('event-message');
-            li.style.color = '#888';
-            li.textContent = message.sender + " joined the room.";
+            li.textContent = message.sender + " joined the room";
         } else if (message.type === 'LEAVE') {
             li.classList.add('event-message');
-            li.style.color = '#ff4444';
-            li.textContent = message.sender + " left the room.";
+            li.textContent = message.sender + " left the room";
+        } else if (message.sender === "System") {
+            // Handle our new Ban/Spam warnings
+            li.classList.add('event-message');
+            li.style.background = "#ffdddd"; // Reddish background
+            li.style.color = "#a00";
+            li.textContent = message.content;
         } else {
-            li.style.color = '#000';
-            li.textContent = message.sender + ": " + message.content;
+            // Normal Chat
+            li.classList.add('message-item');
+
+            // Check who sent it (Me vs Others)
+            if (message.sender === myUsername) {
+                li.classList.add('message-own');
+            } else {
+                li.classList.add('message-other');
+            }
+
+            var senderSpan = document.createElement('span');
+            senderSpan.classList.add('sender-name');
+            senderSpan.textContent = message.sender;
+
+            var contentSpan = document.createTextNode(message.content);
+
+            li.appendChild(senderSpan);
+            li.appendChild(contentSpan);
         }
 
         messageArea.appendChild(li);
+        messageArea.scrollTop = messageArea.scrollHeight; // Auto-scroll to bottom
     }
 </script>
+
 </body>
 </html>

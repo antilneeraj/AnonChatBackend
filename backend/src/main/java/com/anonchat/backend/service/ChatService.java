@@ -14,13 +14,13 @@ public class ChatService {
     private final RedisTemplate<String, Object> redisTemplate;
 
     // CONSTANT: Maximum messages to keep in memory per room
-    private static final int HISTORY_LIMIT = 50;
+    private static final int HISTORY_LIMIT = 1000;
 
     public void saveMessage(String roomId, ChatMessage message) {
         String key = "room:" + roomId;
         redisTemplate.opsForList().rightPush(key, message);
 
-        // If size > 50, remove the 'left' (oldest) item.
+        // If size > 1000, remove the 'left' (oldest) item.
         redisTemplate.opsForList().trim(key, -HISTORY_LIMIT, -1);
 
         // TTL: 1 hour
