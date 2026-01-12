@@ -1,0 +1,249 @@
+openapi: 3.0.3
+info:
+  title: AnonChat Backend API
+  description: |
+    API documentation for the AnonChat backend. 
+    This API handles ephemeral room creation, anonymous chat history management, and PDF exports.
+    
+    **WebSocket Endpoints:**
+    - Connection: `/ws`
+    - Subscribe: `/topic/{roomId}`
+    - Send Message: `/app/chat/{roomId}/sendMessage`
+    - Join Room: `/app/chat/{roomId}/addUser`
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local Development Server
+
+paths:
+  /api/room/create:
+    post:
+      summary: Create a new chat room
+      description: Generates a unique Room ID and invite link based on a user-provided room name.
+      tags:
+        - Room Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoomRequest'
+      responses:
+        '200':
+          description: Room created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateRoomResponse'
+
+  /api/room/{roomId}/info:
+    get:
+      summary: Get room details
+      description: Retrieves the human-readable name of the room using its ID. Useful for displaying room info to users joining via a link.
+      tags:
+        - Room Management
+      parameters:
+        - in: path
+          name: roomId
+          schema:
+            type: string
+          required: true
+          description: The unique ID of the room
+      responses:
+        '200':
+          description: Room information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomInfoResponse'
+
+  /api/room/{roomId}/claim:
+    post:
+      summary: Claim room ownership
+      description: |
+        Attempts to claim ownership of a room. 
+        - If the room has no owner, the requester becomes the OWNER and receives a token.
+        - If the room already has an owner, the requester is assigned the GUEST role.
+      tags:
+        - Room Management
+      parameters:
+        - in: path
+          name: roomId
+          schema:
+            type: string
+          required: true
+          description: The unique ID of the room
+      responses:
+        '200':
+          description: Claim attempt result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimResponse'
+
+  /api/room/{roomId}:
+    delete:
+      summary: Delete a room
+      description: Permanently deletes a room and its history. Requires the Owner Token.
+      tags:
+        - Room Management
+      security:
+        - ownerToken: []
+      parameters:
+        - in: path
+          name: roomId
+          schema:
+            type: string
+          required: true
+          description: The unique ID of the room
+      responses:
+        '200':
+          description: Room deleted successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "✅ Room deleted successfully."
+        '403':
+          description: Access Denied (Invalid or missing token)
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "🚫 Access Denied: You are not the owner."
+
+  /api/history/{roomId}:
+    get:
+      summary: Get chat history
+      description: Retrieves the list of recent messages for a specific room.
+      tags:
+        - Chat History
+      parameters:
+        - in: path
+          name: roomId
+          schema:
+            type: string
+          required: true
+          description: The unique ID of the room
+      responses:
+        '200':
+          description: List of chat messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatMessage'
+    delete:
+      summary: Delete room history
+      description: clear the chat history for a specific room without deleting the room config itself.
+      tags:
+        - Chat History
+      parameters:
+        - in: path
+          name: roomId
+          schema:
+            type: string
+          required: true
+          description: The unique ID of the room
+      responses:
+        '200':
+          description: History deleted successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Room history deleted successfully."
+
+  /api/export/{roomId}:
+    get:
+      summary: Export chat to PDF
+      description: Generates and downloads a PDF file containing the chat history for the specified room.
+      tags:
+        - Chat History
+      parameters:
+        - in: path
+          name: roomId
+          schema:
+            type: string
+          required: true
+          description: The unique ID of the room
+      responses:
+        '200':
+          description: PDF file stream
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+components:
+  securitySchemes:
+    ownerToken:
+      type: apiKey
+      in: header
+      name: X-Owner-Token
+      description: The secret token provided to the user who created/claimed the room.
+
+  schemas:
+    CreateRoomRequest:
+      type: object
+      properties:
+        roomName:
+          type: string
+          example: "Friday Night Hangout"
+        username:
+          type: string
+          example: "Alice"
+      required:
+        - roomName
+        - username
+
+    CreateRoomResponse:
+      type: object
+      properties:
+        roomId:
+          type: string
+          example: "a1b2c3d4"
+        roomName:
+          type: string
+          example: "Friday Night Hangout"
+        inviteLink:
+          type: string
+          example: "http://localhost:3000/?room=a1b2c3d4"
+
+    RoomInfoResponse:
+      type: object
+      properties:
+        roomId:
+          type: string
+          example: "a1b2c3d4"
+        roomName:
+          type: string
+          example: "Friday Night Hangout"
+
+    ClaimResponse:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [OWNER, GUEST]
+          example: "OWNER"
+        token:
+          type: string
+          description: Present only if role is OWNER
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    ChatMessage:
+      type: object
+      properties:
+        sender:
+          type: string
+          example: "Alice"
+        content:
+          type: string
+          example: "Hello everyone!"
+        type:
+          type: string
+          enum: [CHAT, JOIN, LEAVE]
+          example: "CHAT"
